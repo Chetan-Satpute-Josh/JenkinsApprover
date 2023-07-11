@@ -34,6 +34,7 @@ headers.set(
   'Authorization',
   `Basic ${toBase64(JENKINS_USER + ':' + JENKINS_USER_APIKEY)}`,
 );
+headers.set('Content-Type', 'application/json');
 
 export async function getnextPendingInputAction(project, build) {
   let response = await fetch(
@@ -52,9 +53,19 @@ export async function getnextPendingInputAction(project, build) {
   return data;
 }
 
-export async function proceedPendingInput(project, build, inputId) {
+export async function proceedPendingInput(project, build, inputId, token) {
+  const encodedJsonParameter = encodeURIComponent(
+    JSON.stringify({
+      parameter: [{name: 'approvalToken', value: token}],
+    }),
+  );
+
+  console.log(
+    `https://jenkins.joshsoftware.com/job/${project}/${build}/wfapi/inputSubmit?inputId=${inputId}&json=${encodedJsonParameter}`,
+  );
+
   const response = await fetch(
-    `https://jenkins.joshsoftware.com/job/${project}/${build}/input/${inputId}/proceedEmpty`,
+    `https://jenkins.joshsoftware.com/job/${project}/${build}/wfapi/inputSubmit?inputId=${inputId}&json=${encodedJsonParameter}`,
     {
       method: 'POST',
       headers: headers,
@@ -88,7 +99,7 @@ app.use(cors());
 app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.get('/', async (req, res) => {
-  const {project, build, action} = req.query;
+  const {project, build, action, token} = req.query;
 
   if (project === undefined || build === undefined || action === undefined) {
     return res.sendFile(path.join(__dirname, 'views', 'invalidURL.html'));
@@ -109,7 +120,7 @@ app.get('/', async (req, res) => {
 
   if (action === 'proceed') {
     try {
-      await proceedPendingInput(project, build, inputInfo.id);
+      await proceedPendingInput(project, build, inputInfo.id, token);
       return res.sendFile(path.join(__dirname, 'views', 'success.html'));
     } catch {
       return res.sendFile(
@@ -118,7 +129,7 @@ app.get('/', async (req, res) => {
     }
   } else if (action === 'abort') {
     try {
-      await abortPendingInput(project, build, inputInfo.id);
+      await abortPendingInput(project, build, inputInfo.id, token);
       return res.sendFile(path.join(__dirname, 'views', 'abort.html'));
     } catch {
       return res.sendFile(
@@ -130,7 +141,7 @@ app.get('/', async (req, res) => {
   return res.sendFile(path.join(__dirname, 'views', 'invalidURL.html'));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '172.60.1.141', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
