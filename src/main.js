@@ -9,7 +9,7 @@ import {
   proceedPendingInput,
   abortPendingInput,
 } from './api.js';
-import {sendEmail} from './helper.js';
+import {sendAlreadyDoneEmail, sendEmail} from './helper.js';
 import {NODE_ENV, PORT} from './constant.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -34,7 +34,7 @@ app.get('/', async (req, res) => {
     inputInfo = await getnextPendingInputAction(project, build);
 
     if (inputInfo === null) {
-      await sendEmail(email, action, build, project);
+      await sendAlreadyDoneEmail(email, action, build, project);
       return res.sendFile(
         path.join(__dirname, 'views', 'noActionToPerform.html'),
       );
@@ -69,7 +69,7 @@ app.get('/', async (req, res) => {
   return res.sendFile(path.join(__dirname, 'views', 'invalidURL.html'));
 });
 
-app.listen(PORT, '192.168.2.159', () => {
+app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 

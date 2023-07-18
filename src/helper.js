@@ -28,8 +28,40 @@ export async function sendEmail(email, action, build, project) {
   const mailOptions = {
     from: EMAIL_ID,
     to: email,
-    subject: `Jenkins ${actionName} failed for ${build}:${project}`,
-    text: `Could not process ${actionName} request for #${build}: ${project}`,
+    subject: `Jenkins ${actionName} failed for ${project}:${build}`,
+    html: `
+      <p>Could not process ${actionName} request for ${project}:${build}</p>
+      <p>Please visit: 
+      <a href="https://jenkins.joshsoftware.com/job/${project}/${build}/input/">https://jenkins.joshsoftware.com/job/${project}/${build}/input/</a>    
+      to approve/deny the build.</p>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent:', info.response);
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+}
+
+export async function sendAlreadyDoneEmail(email, action, build, project) {
+  let actionName = 'process request';
+
+  if (action === 'proceed') {
+    actionName = 'approved';
+  }
+
+  if (action === 'abort') {
+    actionName = 'denied';
+  }
+
+  // Create the email message
+  const mailOptions = {
+    from: EMAIL_ID,
+    to: email,
+    subject: `Jenkins ${project}:${build} already ${actionName}`,
+    text: `Build ${build} of ${project} was already ${actionName}`,
   };
 
   try {
