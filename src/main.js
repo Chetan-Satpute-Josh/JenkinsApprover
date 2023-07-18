@@ -1,95 +1,11 @@
 import express from 'express';
-import dotenv from 'dotenv';
 import morgan from 'morgan';
 import cors from 'cors';
 import path, {dirname} from 'path';
 import {fileURLToPath} from 'url';
 
-import {toBase64} from './helper.js';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-//======================================
-
-// Load Environment variables
-dotenv.config();
-
-const {NODE_ENV, PORT, JENKINS_USER, JENKINS_USER_APIKEY} = process.env;
-
-if (
-  NODE_ENV === undefined ||
-  PORT === undefined ||
-  JENKINS_USER === undefined ||
-  JENKINS_USER_APIKEY === undefined
-) {
-  console.error('Error: Missing environment variables');
-  process.exit(1);
-}
-
-//======================================
-
-const headers = new Headers();
-headers.set(
-  'Authorization',
-  `Basic ${toBase64(JENKINS_USER + ':' + JENKINS_USER_APIKEY)}`,
-);
-headers.set('Content-Type', 'application/json');
-
-export async function getnextPendingInputAction(project, build) {
-  let response = await fetch(
-    `https://jenkins.joshsoftware.com/job/${project}/${build}/wfapi/nextPendingInputAction`,
-    {
-      method: 'GET',
-      headers: headers,
-    },
-  );
-
-  if (response.ok === false) {
-    throw new Error();
-  }
-
-  const data = await response.json();
-  return data;
-}
-
-export async function proceedPendingInput(project, build, inputId, token) {
-  const encodedJsonParameter = encodeURIComponent(
-    JSON.stringify({
-      parameter: [{name: 'approvalToken', value: token}],
-    }),
-  );
-
-  console.log(
-    `https://jenkins.joshsoftware.com/job/${project}/${build}/wfapi/inputSubmit?inputId=${inputId}&json=${encodedJsonParameter}`,
-  );
-
-  const response = await fetch(
-    `https://jenkins.joshsoftware.com/job/${project}/${build}/wfapi/inputSubmit?inputId=${inputId}&json=${encodedJsonParameter}`,
-    {
-      method: 'POST',
-      headers: headers,
-    },
-  );
-
-  if (response.ok === false) {
-    throw new Error();
-  }
-}
-
-export async function abortPendingInput(project, build, inputId) {
-  const response = await fetch(
-    `https://jenkins.joshsoftware.com/job/${project}/${build}/input/${inputId}/abort`,
-    {
-      method: 'POST',
-      headers: headers,
-    },
-  );
-
-  if (response.ok === false) {
-    throw new Error();
-  }
-}
 
 //======================================
 
@@ -99,7 +15,7 @@ app.use(cors());
 app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.get('/', async (req, res) => {
-  const {project, build, action, token} = req.query;
+  const {project, build, action, token, email} = req.query;
 
   if (project === undefined || build === undefined || action === undefined) {
     return res.sendFile(path.join(__dirname, 'views', 'invalidURL.html'));
@@ -110,6 +26,7 @@ app.get('/', async (req, res) => {
     inputInfo = await getnextPendingInputAction(project, build);
 
     if (inputInfo === null) {
+      await sendEmail(email, action);
       return res.sendFile(
         path.join(__dirname, 'views', 'noActionToPerform.html'),
       );
@@ -123,6 +40,7 @@ app.get('/', async (req, res) => {
       await proceedPendingInput(project, build, inputInfo.id, token);
       return res.sendFile(path.join(__dirname, 'views', 'success.html'));
     } catch {
+      await sendEmail(email, action);
       return res.sendFile(
         path.join(__dirname, 'views', 'somethingWentWrong.html'),
       );
@@ -132,6 +50,7 @@ app.get('/', async (req, res) => {
       await abortPendingInput(project, build, inputInfo.id, token);
       return res.sendFile(path.join(__dirname, 'views', 'abort.html'));
     } catch {
+      await sendEmail(email, action);
       return res.sendFile(
         path.join(__dirname, 'views', 'somethingWentWrong.html'),
       );
@@ -141,7 +60,7 @@ app.get('/', async (req, res) => {
   return res.sendFile(path.join(__dirname, 'views', 'invalidURL.html'));
 });
 
-app.listen(PORT, '172.60.1.141', () => {
+app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
