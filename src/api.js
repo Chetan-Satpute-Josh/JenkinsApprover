@@ -1,5 +1,5 @@
-import {JENKINS_USER, JENKINS_USER_APIKEY} from './constant';
-import {toBase64} from './helper';
+import {JENKINS_USER, JENKINS_USER_APIKEY} from './constant.js';
+import {toBase64} from './helper.js';
 
 const headers = new Headers();
 headers.set(

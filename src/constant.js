@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+
 // Load Environment variables
 dotenv.config();
 

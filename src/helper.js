@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
-import {EMAIL_ID, EMAIL_PASSWORD} from './constant';
+
+import {EMAIL_ID, EMAIL_PASSWORD} from './constant.js';
 
 //======================================
 
