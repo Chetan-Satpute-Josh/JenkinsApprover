@@ -13,8 +13,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function sendEmail(email, action) {
-  const actionName = 'process request';
+export async function sendEmail(email, action, build, project) {
+  let actionName = 'process request';
 
   if (action === 'proceed') {
     actionName = 'approval';
@@ -35,7 +35,7 @@ export async function sendEmail(email, action) {
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log('Email sent:', info.response);
-  } catch {
+  } catch (error) {
     console.error('Error sending email:', error);
   }
 }
@@ -45,4 +45,3 @@ export async function sendEmail(email, action) {
 export function toBase64(str) {
   return Buffer.from(str).toString('base64');
 }
-

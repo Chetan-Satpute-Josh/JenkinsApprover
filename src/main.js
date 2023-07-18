@@ -25,7 +25,7 @@ app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.get('/', async (req, res) => {
   const {project, build, action, token, email} = req.query;
 
-  if (project === undefined || build === undefined || action === undefined) {
+  if (project === undefined || build === undefined || action === undefined || email === undefined) {
     return res.sendFile(path.join(__dirname, 'views', 'invalidURL.html'));
   }
 
@@ -34,12 +34,13 @@ app.get('/', async (req, res) => {
     inputInfo = await getnextPendingInputAction(project, build);
 
     if (inputInfo === null) {
-      await sendEmail(email, action);
+      await sendEmail(email, action, build, project);
       return res.sendFile(
         path.join(__dirname, 'views', 'noActionToPerform.html'),
       );
     }
   } catch {
+      await sendEmail(email, action, build, project);
     return res.sendFile(path.join(__dirname, 'views', 'invalidURL.html'));
   }
 
@@ -48,7 +49,7 @@ app.get('/', async (req, res) => {
       await proceedPendingInput(project, build, inputInfo.id, token);
       return res.sendFile(path.join(__dirname, 'views', 'success.html'));
     } catch {
-      await sendEmail(email, action);
+      await sendEmail(email, action, build, project);
       return res.sendFile(
         path.join(__dirname, 'views', 'somethingWentWrong.html'),
       );
@@ -58,7 +59,7 @@ app.get('/', async (req, res) => {
       await abortPendingInput(project, build, inputInfo.id, token);
       return res.sendFile(path.join(__dirname, 'views', 'abort.html'));
     } catch {
-      await sendEmail(email, action);
+      await sendEmail(email, action, build, project);
       return res.sendFile(
         path.join(__dirname, 'views', 'somethingWentWrong.html'),
       );
@@ -68,7 +69,7 @@ app.get('/', async (req, res) => {
   return res.sendFile(path.join(__dirname, 'views', 'invalidURL.html'));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '192.168.2.159', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
